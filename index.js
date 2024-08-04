@@ -1,87 +1,144 @@
-let searchInput = document.getElementById("searchInput");
-let searchBtn = document.getElementById("searchBtn");
-let dishs = document.querySelectorAll(".dish");
-let  dishName = document.querySelectorAll(".dishName");
-let nextBtn = document.getElementById("nextBtn");
-let prevBtn = document.getElementById("prevBtn");
-console.log(prevBtn);
+const recipes_container = document.querySelector(".recipes_container");
 
-let count = 0;
+const searchBtn = document.querySelector("#searchBtn");
 
- console.log(dishs);
-const getData = async (value) =>{
-   try{
-    let data = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${value}`);
-    let jsonData = await data.json()
+const search_input = document.querySelector("#searchBox");
+
+const view_recipe = document.querySelector(".view_recipe");
+
+const recipe_content = document.querySelector(".recipe_content");
+
+const recipe_details = document.querySelector(".recipe_details");
+
+const recipeCloseBtn = document.querySelector(".recipeCloseBtn");
+
+recipes_container.innerHTML = "<h1> Search the meal <h1>";
+
+/*function to send api request */
+
+const fetchApi = async (query) => {
+  recipes_container.innerHTML = `
+  <img src="https://i.pinimg.com/originals/ee/1d/08/ee1d081c5bdf966b058c1a6588e73e8a.gif" class="loader_img" />`;
+
+  try {
+    const requestApi = await fetch(
+      ` https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`
+    );
+
+    const response = await requestApi.json();
+
+    showdata(response);
+  } catch (er) {
+    console.log(er);
+  }
+};
+
+/* function to get api response */
+
+const showdata = async (resp) => {
+  try {
+    recipes_container.innerHTML = "";
+
+    const result = await resp.meals;
+
+    result.map((value) => {
+      const { strMealThumb, strMeal, strArea, strCategory } = value;
+
+      var recipe_card = document.createElement("div");
+
+      recipe_card.setAttribute("class", "recipe_card");
+
+      recipe_card.innerHTML = ` 
+  <img src= ${strMealThumb} />
+          <div class="recipe_description">
+            <h2> ${strMeal}</h2>
+            <h3>  <span> ${strArea} </span>  dish</h3>
+            <h5> belongs to <span> ${strCategory}</span> category </h5>
+            
+            </div>
+      `;
+
+      const view_recipeBtn = document.createElement("button");
+
+      view_recipeBtn.innerHTML = "view recipe";
+      view_recipeBtn.setAttribute("class", "view_recipeBtn");
+
+      recipe_card.appendChild(view_recipeBtn);
+
+      view_recipeBtn.addEventListener("click", () => {
+        recipePopup(value);
+        view_recipeBtn.innerHTML = "close";
+        view_recipeBtn.style.backgroundColor = "green";
+      });
+
+      /*close recipe card */
+      recipeCloseBtn.addEventListener("click", () => {
+        recipe_content.parentElement.style.display = "none";
+
+        view_recipeBtn.innerHTML = "view recipe";
+        view_recipeBtn.style.backgroundColor = "#f38932";
+      });
+
+      recipes_container.appendChild(recipe_card);
+    });
+  } catch (err) {
+    recipes_container.innerHTML =
+      "<h1 class='errormsg'> recipe not found </h1>";
+  }
+};
+
+/* recipe popup function */
+
+const recipePopup = (meals) => {
+  let buttonlist = document.querySelectorAll(".view_recipeBtn");
+  buttonlist.forEach((btn) => {
+    btn.innerHTML = "view recipe";
+    btn.style.backgroundColor = "#f38932";
+  });
+
+  recipe_content.parentElement.style.display = "block";
+  recipe_content.innerHTML = ` 
+   <h3 class="recipe_name"> ${meals.strMeal} </h3>
+       <h2> ingredients</h2> <ul>  
+      ${fetchIngredients(meals)}
+ </ul>
  
-    document.querySelector(".showMeal").innerHTML=""
-    console.log(jsonData.meals);
-    
-    jsonData.meals.forEach(function(curData){
-        console.log(curData);
+ <h2>instructions </h2>
+ <div class="instructions">
+ <p> ${meals.strInstructions} <p> </div>
+   `;
+};
 
-        let div = document.createElement("div");
-        div.classList.add("card");
-        div.innerHTML=`
-        <img src=${curData.strMealThumb} alt="">
-            <p>${curData.strMeal}</p>
-            <button>Show More</button>
+/*function to fetch ingredients */
 
-        `
-        document.querySelector(".showMeal").appendChild(div)
-    })
-   }catch(error){
-    document.querySelector(".showMeal").innerHTML="<h1>Meal Not Find</h1>"
-   }
-}
-
-
-searchBtn.addEventListener("click", function(){
-    let searchValue = searchInput.value ;
-    if(searchValue == ""){
-        alert("SearchValue First")
-    }else{
-    getData(searchValue)
+const fetchIngredients = (meal) => {
+  let ingredientList = "";
+  console.log(meal);
+  for (let i = 1; i <= 20; i++) {
+    const ingredient = meal[`strIngredient${i}`];
+    if (ingredient) {
+      const measure = meal[`strMeasure${i}`];
+      ingredientList += `<li> ${measure}   <b> ${ingredient} </b> </li> `;
+    } else {
+      break;
     }
-})
+  }
+  return ingredientList;
+};
 
- 
+/* search recipe */
+searchBtn.addEventListener("click", (e) => {
+  e.preventDefault();
 
-dishs.forEach(function(name){
-    name.addEventListener("click", function(){
-        console.log(name.value);
-        getData(name.value)
-    })
-})
+  let search_val = search_input.value.trim();
 
+  if (search_val === "") {
+    recipes_container.innerHTML =
+      "<h1 class='errormsg'> please enter a meal </h1>";
 
-// slider
-dishName.forEach(function(dish, index){
-    dish.style.left=`${index * 100}%`;
+    return;
+  }
+
+  search_input.value = " ";
+  fetchApi(search_val);
 });
-
-function myFun(){
-
-    dishName.forEach(function(curVal){
-        curVal.style.transform=`translateX(-${count * 100}%)`
-    })
-} 
- 
-
-nextBtn.addEventListener("click", function(){
-    count++;
-    if(count == dishName.length){
-        count=0;
-    }
-    myFun();
-})
-console.log(document.querySelector("#prevBtn").value);
-
-prevBtn.addEventListener("click", function(){
-    count--;
-    if(count == -1){
-        count= dishName.length-1;
-    }
-    myFun();
-     
-})
